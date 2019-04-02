@@ -35,6 +35,7 @@ end if
 
 --main method to autocomplete login
 on startLoginProcess()
+	set wifi_name to do shell script "/System/Library/PrivateFrameworks/Apple80211.framework/Resources/airport -I | awk '/ SSID: / {print $2}'" --CHECK
 	try
 		tell application "Google Chrome"
 			activate
