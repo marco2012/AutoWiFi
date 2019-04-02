@@ -25,7 +25,7 @@ set wifi_name to do shell script "/System/Library/PrivateFrameworks/Apple80211.f
 if wifi_name is "Vodafone-WiFi" and chrome_installed then
 	tell application "Google Chrome"
 		activate
-		open location "https://it.portal.vodafone-wifi.com/jcp/it?res=welcome&nasid=90-35-6E-92-5D-30&uamip=192.168.6.1&uamport=80&mac=8C-85-90-3B-C9-E4&challenge=956dd8bd0c0d92bd2164b5d201d4cd42&ip=192.168.6.2&userurl=http%3A%2F%2Fvodafone.it&lang=en_US&LANGUAGE=en_US"
+		open location "http://captive.apple.com/hotspot-detect.html"
 		
 		repeat until (loading of active tab of window 1 is false) --wait for page to load	
 		end repeat
