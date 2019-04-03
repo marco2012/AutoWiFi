@@ -1,9 +1,11 @@
 # AutoWiFi
 
-### AppleScript to automatically login to free WiFi
+### Automatically login to WiFi networks
 
-This AppleScript opens the network page on Google Chrome, it fills the login form and connects automatically. It saves a lot of time.
+This AppleScript allows you to automatically login to WiFi, without manually inserting credentials each time. 
 
+It opens the network page on Google Chrome, fills the login form and connects automatically, saving a lot of time.
+ 
 **Supported networks:**
 - Vodafone-WiFi
 - sapienza
