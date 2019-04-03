@@ -1,26 +1,33 @@
--- Auto log in to Vodafone-Wifi Network using Google Chrome
+-- Auto log in to Vodafone-WiFi or Sapienza Network using Google Chrome
 -- Created by Marco2012
 -- Tested on MacOS 10.14 Mojave
 -- Inspired by https://apple.stackexchange.com/a/338596/63894
 
-global wifi_name, EMAIL_VODAFONE, PASSWORD_VODAFONE
+global wifi_name, EMAIL_VODAFONE, PASSWORD_VODAFONE, MATRICOLA_SAPIENZA, PASSWORD_SAPIENZA
 
-set EMAIL_VODAFONE to "INSERT_YOUR_EMAIL"
-set PASSWORD_VODAFONE to "INSERT_YOUR_PASSWORD"
+-- Variables to set up
+set EMAIL_VODAFONE to ""
+set PASSWORD_VODAFONE to ""
 
+set MATRICOLA_SAPIENZA to ""
+set PASSWORD_SAPIENZA to ""
+
+-- when the script is run for the first time, it disables captive network popup window and checks if chrome is installed
 if firstTimeRun() then
 	writeConfigFile()
 	disableCaptiveNetworkWindow()
 	set chrome_installed to existsGoogleChrome()
-else
-	set chrome_installed to true --assume chrome installed to reduce execution time
+else --assume chrome installed to speed up execution time
+	set chrome_installed to true
 end if
 
 set wifi_name to do shell script "/System/Library/PrivateFrameworks/Apple80211.framework/Resources/airport -I | awk '/ SSID: / {print $2}'"
 
 if chrome_installed then
-	if wifi_name is "Vodafone-WiFi" then
-		startLoginProcess()
+	if wifi_name is "Vodafone-WiFi" or wifi_name is "sapienza" then
+		if not working_connection() then
+			startLoginProcess()
+		end if
 	else
 		display notification "I'm trying to connect to a supported network" with title "Connection in progress..." sound name "Pop"
 		connectoToWiFi()
@@ -46,9 +53,15 @@ on startLoginProcess()
 			end repeat
 			
 			tell active tab of window 1
-				execute javascript "document.getElementById('userFake').value = '" & EMAIL_VODAFONE & "' "
-				execute javascript "document.getElementById('password').value ='" & PASSWORD_VODAFONE & "' "
-				execute javascript "document.getElementById('login').click()"
+				if wifi_name is "Vodafone-WiFi" then
+					execute javascript "document.getElementById('userFake').value = '" & EMAIL_VODAFONE & "' "
+					execute javascript "document.getElementById('password').value ='" & PASSWORD_VODAFONE & "' "
+					execute javascript "document.getElementById('login').click()"
+				else if wifi_name is "sapienza" then --TODO change javascript fields
+					execute javascript "document.getElementsByName('auth_user')[0].value = '" & MATRICOLA_SAPIENZA & "' "
+					execute javascript "document.getElementsByName('auth_pass')[0].value ='" & PASSWORD_SAPIENZA & "' "
+					execute javascript "document.getElementsByName('accept')[0].click()"
+				end if
 			end tell
 			
 		end tell
@@ -57,6 +70,7 @@ on startLoginProcess()
 		display notification "Please enter your password" with title "An error occurred..." subtitle "Clearing DNS cache..." sound name "Sosumi"
 		--clear DNS cache
 		do shell script "killall -HUP mDNSResponder" with administrator privileges
+		display notification "DNS cache cleared, launch the script again." with title wifi_name subtitle "Try again" sound name "Pop"
 	end try
 end startLoginProcess
 
@@ -65,12 +79,13 @@ end startLoginProcess
 on connectoToWiFi()
 	set available_wifi_networks to paragraphs 2 thru -1 of (do shell script "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -s | sed -nE 's/[ ]*(.*) [a-z0-9]{2}:[a-z0-9]{2}:.+/\\1/p'")
 	repeat with anItem in available_wifi_networks
-		if "Vodafone-WiFi" contains anItem then --connect to wifi
-			set output to do shell script "networksetup -setairportnetwork en0 Vodafone-WiFi"
+		if "Vodafone-WiFi" contains anItem or "sapienza" contains anItem then
+			set output to do shell script "networksetup -setairportnetwork en0 " & anItem --connect to wifi
 			if output contains "Could not find network" then
-				display notification "There was an error joining supported network." with title "WiFi not available." sound name "Sosumi"
+				display notification "There was an error joining supported network. Try manually." with title "WiFi not available." sound name "Sosumi"
 				return false
 			else
+				delay 2
 				startLoginProcess()
 				return true
 			end if
@@ -115,7 +130,7 @@ on writeConfigFile() --https://apple.stackexchange.com/a/321078/63894
 		write theText & linefeed to writeToFile starting at eof
 		close access theFile
 	end try
-	do shell script "chflags hidden " & theFile
+	do shell script "chflags hidden " & theFile --hide config file
 end writeConfigFile
 
 
@@ -129,3 +144,15 @@ on firstTimeRun()
 		end if
 	end tell
 end firstTimeRun
+
+--returns true if there is a working connection
+on working_connection()
+	try
+		dotted decimal form of host of ("http://www.apple.com/library/test/success.html" as URL)
+		display notification with title wifi_name subtitle "Already connected to the internet." sound name "Pop"
+		return true
+	on error errStr number errorNumber
+		error errStr number errorNumber
+		return false
+	end try
+end working_connection
